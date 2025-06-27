@@ -1,0 +1,41 @@
+name: Build Kernel for spes (Redmi Note 11 NFC)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout kernel source
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y bc bison build-essential curl flex git libncurses5-dev libssl-dev python3
+
+    - name: Clone Clang
+      run: |
+        git clone --depth=1 https://github.com/ZyCromerZ/Clang.git -b 18 clang
+
+    - name: Build kernel
+      run: |
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export KBUILD_BUILD_USER=Gandol
+        export KBUILD_BUILD_HOST=GitHub
+        export CLANG_PATH=$GITHUB_WORKSPACE/clang
+        export PATH=$CLANG_PATH/bin:$PATH
+
+        make O=out ARCH=arm64 spes_defconfig
+        make -j$(nproc) O=out ARCH=arm64 CC=clang \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_COMPAT=arm-linux-gnueabi-
+
+    - name: Upload Image.gz-dtb
+      uses: actions/upload-artifact@v3
+      with:
+        name: Image.gz-dtb
+        path: out/arch/arm64/boot/Image.gz-dtb
