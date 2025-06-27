@@ -1,0 +1,37 @@
+name: Build Kernel for Redmi Note 11 NFC (spesn)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout kernel source
+      uses: actions/checkout@v3
+
+    - name: Clone Clang Toolchain
+      run: |
+        git clone --depth=1 https://github.com/ZyCromerZ/Clang clang
+        echo "CLANG_PATH=$PWD/clang/bin" >> $GITHUB_ENV
+
+    - name: Build Kernel
+      run: |
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export KBUILD_BUILD_USER=GandolProject
+        export KBUILD_BUILD_HOST=GitHubActions
+        export PATH=$CLANG_PATH:$PATH
+
+        make O=out spesn_defconfig
+        make -j$(nproc) O=out \
+          CC=clang \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CLANG_TRIPLE=aarch64-linux-gnu-
+
+    - name: Upload Image.gz-dtb
+      uses: actions/upload-artifact@v3
+      with:
+        name: kernel-output
+        path: out/arch/arm64/boot/Image.gz-dtb
